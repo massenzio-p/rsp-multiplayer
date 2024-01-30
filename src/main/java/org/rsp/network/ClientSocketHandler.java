@@ -1,9 +1,7 @@
 package org.rsp.network;
 
-import com.google.common.eventbus.AsyncEventBus;
 import org.rsp.interaction.DialogInteractor;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -15,26 +13,22 @@ import java.util.logging.Logger;
 /**
  * A non-blocking socket handler implementation.
  */
-public class NonBlockingSocketHandler implements SocketHandler {
+class ClientSocketHandler implements Runnable {
 
-    private final Logger logger = Logger.getLogger(NonBlockingSocketHandler.class.getName());
+    private final Logger logger = Logger.getLogger(ClientSocketHandler.class.getName());
 
-    private final ExecutorService executorService;
+    private final Socket socket;
     private final DialogInteractor interactor;
 
-    public NonBlockingSocketHandler(ExecutorService executorService,
-                                    DialogInteractor interactor) {
-        this.executorService = executorService;
+    ClientSocketHandler(Socket socket,
+                        DialogInteractor interactor) {
+        this.socket = socket;
         this.interactor = interactor;
     }
 
     @Override
-    public void handleSocket(Socket socket) {
-        executorService.submit(() -> internalHandleSocketTask(socket));
-    }
-
-    private void internalHandleSocketTask(Socket socket) {
-        try (var reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    public void run() {
+        try (var reader = new InputStreamReader(socket.getInputStream());
              var writer = new PrintWriter(socket.getOutputStream(), true)) {
             try {
                 this.interactor.interact(reader, writer);

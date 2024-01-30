@@ -2,7 +2,7 @@ plugins {
     id("java")
 }
 
-group = "org.example"
+group = "org.rsp"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -10,6 +10,9 @@ repositories {
 }
 
 dependencies {
+    // Annotation processing
+    annotationProcessor("org.projectlombok:lombok:1.18.30")
+    compileOnly("org.projectlombok:lombok:1.18.30")
     // Core
     implementation("com.google.guava:guava:32.0.0-jre");
     // Testing
