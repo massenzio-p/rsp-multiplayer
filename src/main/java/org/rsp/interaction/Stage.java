@@ -1,5 +1,5 @@
 package org.rsp.interaction;
 
 public enum Stage {
-    INTRODUCTION, MENU
+    INTRODUCTION, GAME_START, FINISHING, GAME_QUEUE
 }

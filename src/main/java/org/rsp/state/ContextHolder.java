@@ -1,9 +1,11 @@
-package org.rsp;
+package org.rsp.state;
 
 import com.google.common.eventbus.AsyncEventBus;
-import org.rsp.registry.CompoundRegistry;
-import org.rsp.registry.PlayerQueueRegistry;
-import org.rsp.registry.SessionRegistry;
+import org.rsp.network.session.SessionRegistry;
+import org.rsp.registry.*;
+import org.rsp.registry.game.GameRegistry;
+import org.rsp.interaction.game.GameRoomFactoryImpl;
+import org.rsp.registry.queue.PlayerQueueRegistry;
 
 import java.util.concurrent.Executors;
 
@@ -16,7 +18,7 @@ public class ContextHolder {
 
     private ContextHolder() {
         this.eventBus = new AsyncEventBus(Executors.newFixedThreadPool(EVENT_BUS_THREADS));
-        this.compoundRegistry = new CompoundRegistry();
+        this.compoundRegistry = new CompoundRegistry(new GameRoomFactoryImpl());
     }
 
     public static ContextHolder getInstance() {
@@ -35,6 +37,10 @@ public class ContextHolder {
     }
 
     public static PlayerQueueRegistry getQueueRegistry() {
+        return getInstance().compoundRegistry;
+    }
+
+    public static GameRegistry getGameRegistry() {
         return getInstance().compoundRegistry;
     }
 }

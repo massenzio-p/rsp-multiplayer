@@ -1,11 +1,10 @@
 package org.rsp;
 
-import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.Subscribe;
 import org.rsp.interaction.DialogInteractorFactoryImpl;
 import org.rsp.network.SocketHandlerFactory;
 import org.rsp.network.SocketHandlerFactoryImpl;
-import org.rsp.registry.CompoundRegistry;
+import org.rsp.state.ContextHolder;
 import org.rsp.state.ServerStatus;
 import org.rsp.util.ArgsParserUtils;
 
@@ -47,7 +46,10 @@ public class GameServer {
 
         // create an application event bus and factories
         SocketHandlerFactory socketHandlerFactory = new SocketHandlerFactoryImpl(
-                new DialogInteractorFactoryImpl(ContextHolder.getSessionRegistry(), ContextHolder.getQueueRegistry())
+                new DialogInteractorFactoryImpl(
+                        ContextHolder.getSessionRegistry(),
+                        ContextHolder.getQueueRegistry(),
+                        ContextHolder.getGameRegistry())
         );
         // Create and start a server
         GameServer gameServer = new GameServer(port, socketHandlerFactory);
@@ -70,6 +72,7 @@ public class GameServer {
                 }
             }
         } catch (IOException | IllegalArgumentException e) {
+            e.printStackTrace();
             logger.info("Server shutdown");
         }
     }

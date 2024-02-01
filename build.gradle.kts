@@ -1,9 +1,10 @@
 plugins {
     id("java")
+    id("com.github.johnrengelman.shadow") version "7.1.2" apply true
 }
 
 group = "org.rsp"
-version = "1.0-SNAPSHOT"
+version = "1.0"
 
 repositories {
     mavenCentral()
@@ -21,7 +22,21 @@ dependencies {
     testImplementation("org.mockito:mockito-core:2.1.0")
 }
 
-tasks.test {
-    jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
-    useJUnitPlatform()
+tasks {
+    jar {
+        enabled = false
+    }
+    test {
+        jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
+        useJUnitPlatform()
+    }
+    shadowJar {
+        manifest {
+            attributes["Main-Class"] = "org.rsp.GameServer"
+        }
+        archiveBaseName.set("rsp-game-server")
+    }
+    build {
+        finalizedBy(shadowJar)
+    }
 }

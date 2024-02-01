@@ -1,4 +1,6 @@
-package org.rsp.registry;
+package org.rsp.network.session;
+
+import org.rsp.network.session.Session;
 
 public interface SessionRegistry {
 

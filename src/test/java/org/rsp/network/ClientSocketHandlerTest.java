@@ -36,9 +36,9 @@ class ClientSocketHandlerTest {
     }
 
     @Test
-    void testNormalHandleSocket() throws InterruptedException {
+    void testServerStarts() throws InterruptedException {
         executorService.submit(socketHandler);
         Thread.sleep(2000);
-        Mockito.verify(dialogInteractor, Mockito.only()).interact(Mockito.any(), Mockito.any());
+        Mockito.verify(dialogInteractor, Mockito.only()).interact(Mockito.any());
     }
 }

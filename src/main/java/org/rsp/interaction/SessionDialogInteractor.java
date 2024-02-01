@@ -1,6 +1,6 @@
 package org.rsp.interaction;
 
-import org.rsp.registry.Session;
+import org.rsp.network.session.Session;
 
 public interface SessionDialogInteractor {
 

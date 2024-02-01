@@ -1,16 +1,33 @@
 package org.rsp.registry;
 
-import java.util.Queue;
+import lombok.RequiredArgsConstructor;
+import org.rsp.network.session.PlayerSession;
+import org.rsp.network.session.Session;
+import org.rsp.network.session.SessionRegistry;
+import org.rsp.registry.game.GameRegistry;
+import org.rsp.interaction.game.GameRoom;
+import org.rsp.interaction.game.GameRoomFactory;
+import org.rsp.registry.queue.GameTicket;
+import org.rsp.registry.queue.PlayerGameTicket;
+import org.rsp.registry.queue.PlayerQueueRegistry;
+import org.rsp.util.LimitedSizeHashSet;
+
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class CompoundRegistry implements PlayerQueueRegistry, PlayRegistry, SessionRegistry {
+@RequiredArgsConstructor
+public class CompoundRegistry implements PlayerQueueRegistry, GameRegistry, SessionRegistry {
 
-    private final static int QUEUE_CAPACITY = 15;
+    private static final int QUEUE_CAPACITY = 15;
+    private static final int PLAYER_NUMBER_PER_ROOM_SUPPORT = 2;
+    public static final int MAX_GAMES_NUMBER = 20;
 
     private final ConcurrentHashMap<String, Session> sessionStorage = new ConcurrentHashMap<>();
-    private final Queue<QueueTicket> playerQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
-
+    private final Queue<GameTicket> playerQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
+    private final GameRoom[] currentlyFillingRooms = new GameRoom[PLAYER_NUMBER_PER_ROOM_SUPPORT];
+    private final Set<GameRoom> gamesStorage = Collections.synchronizedSet(new LimitedSizeHashSet<>(MAX_GAMES_NUMBER));
+    private final GameRoomFactory gameRoomFactory;
 
     @Override
     public Session createSession(String username) {
@@ -38,9 +55,9 @@ public class CompoundRegistry implements PlayerQueueRegistry, PlayRegistry, Sess
     public void cancelQueueParticipation(String username) {
         Session session = findSession(username);
 
-        if(session != null && session.getQueueTicket() != null) {
-            session.getQueueTicket().close();
-            session.setQueueTicket(null);
+        if (session != null && session.getGameTicket() != null) {
+            session.getGameTicket().close();
+            session.setGameTicket(null);
         }
         synchronized (this.playerQueue) {
             this.playerQueue.remove(username);
@@ -52,21 +69,63 @@ public class CompoundRegistry implements PlayerQueueRegistry, PlayRegistry, Sess
         Session session = findSession(name);
 
         return session != null
-                && session.getQueueTicket() != null
-                && session.getQueueTicket().isActive();
+                && session.getGameTicket() != null
+                && session.getGameTicket().isActive();
     }
 
     @Override
-    public QueueTicket registerUserAwaiting(String name) {
+    public GameTicket registerUserAwaiting(String name) throws NoSuchElementException, IllegalStateException {
         Session session = findSession(name);
         if (session != null) {
-            QueueTicket queueTicket = new PlayerQueueTicket(name);
-            session.setQueueTicket(queueTicket);
+            GameTicket gameTicket = new PlayerGameTicket(name);
+            session.setGameTicket(gameTicket);
             synchronized (this.playerQueue) {
-                this.playerQueue.add(queueTicket);
+                this.playerQueue.add(gameTicket);
             }
-            return queueTicket;
+            return gameTicket;
         }
-        return null;
+        throw new NoSuchElementException("The user not found in registry");
+    }
+
+    @Override
+    public GameRoom findGameRoom(GameTicket gameTicket) {
+        int playersAmount = gameTicket.getRoomSize();
+        synchronized (this.currentlyFillingRooms) {
+            GameRoom room = this.currentlyFillingRooms[playersAmount - 1];
+            if (room == null) {
+                room = this.gameRoomFactory.createGameRoom(playersAmount);
+                this.currentlyFillingRooms[playersAmount - 1] = room;
+            }
+            room.addPlayer(gameTicket);
+
+            if (room.getPlayersAmount() == playersAmount) {
+                this.gamesStorage.add(room);
+                this.currentlyFillingRooms[playersAmount - 1] = null;
+            }
+            return room;
+        }
+    }
+
+    @Override
+    public boolean checkPlayerTurn(GameTicket ticket) {
+        GameTicket nextRequest = this.playerQueue.peek();
+
+        if (nextRequest == null || ticket == null || !ticket.isActive()) {
+            throw new IllegalCallerException("The request is invalid or unregistered");
+        }
+        if (ticket.equals(nextRequest)) {
+            synchronized (this.playerQueue) {
+                nextRequest = this.playerQueue.poll();
+            }
+            GameRoom room = findGameRoom(nextRequest);
+            ticket.setGameRoom(room);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void removeRoom(GameRoom gameRoom) {
+        gamesStorage.remove(gameRoom);
     }
 }

@@ -31,7 +31,7 @@ class ClientSocketHandler implements Runnable {
         try (var reader = new InputStreamReader(socket.getInputStream());
              var writer = new PrintWriter(socket.getOutputStream(), true)) {
             try {
-                this.interactor.interact(reader, writer);
+                this.interactor.interact(new PlayerConnection(reader, writer));
             } catch (Exception e) {
                 logger.log(Level.SEVERE, "An error occurred while interacting", e);
             }
