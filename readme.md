@@ -18,5 +18,5 @@ jdk-17, gradle 8.4
 
 Порт по дефолту - 5050
 
-На всякий случай скомпилированный jar лежит в директории ./jar
+На всякий случай скомпилированный jar опубликован в релизе https://github.com/massenzio-p/rsp-multiplayer/releases/tag/no-tag
 
